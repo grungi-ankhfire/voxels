@@ -13,6 +13,8 @@ public class CameraScroll : MonoBehaviour {
     private float journeyLength;
 
     private bool isMoving = false;
+    public GameObject old_focus;
+    private GameObject new_focus;
 
 	// Use this for initialization
 	void Start () {
@@ -27,11 +29,22 @@ public class CameraScroll : MonoBehaviour {
             transform.position = Vector3.Lerp(startPosition, endPosition, fracJourney);        	
 	        if (transform.position == endPosition) {
                 isMoving = false;
+                foreach (Transform child in new_focus.transform)
+                     {
+                             child.gameObject.SetActive(true);
+                     } 
+                old_focus.SetActive(false);
+                old_focus = new_focus;
             }
         }
     }
 
     public void LookAtObject(GameObject obj) {
+        new_focus = obj;
+        foreach (Transform child in old_focus.transform)
+            {
+                child.gameObject.SetActive(false);
+            } 
         startPosition = Camera.main.transform.position;
         endPosition = obj.transform.position + offset;
         startTime = Time.time;

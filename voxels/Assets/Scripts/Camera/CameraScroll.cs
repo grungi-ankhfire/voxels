@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityStandardAssets.Characters.ThirdPerson;
 
 public class CameraScroll : MonoBehaviour {
 
@@ -16,6 +17,10 @@ public class CameraScroll : MonoBehaviour {
     public GameObject old_focus;
     private GameObject new_focus;
 
+    public GameObject character;
+    private Vector3 character_old_pos;
+    private Vector3 character_new_pos; 
+
 	// Use this for initialization
 	void Start () {
 	
@@ -26,7 +31,8 @@ public class CameraScroll : MonoBehaviour {
         if (isMoving) {
             float distCovered = (Time.time - startTime) * speed;
             float fracJourney = distCovered / journeyLength;
-            transform.position = Vector3.Lerp(startPosition, endPosition, fracJourney);        	
+            transform.position = Vector3.Lerp(startPosition, endPosition, fracJourney);
+            character.transform.position = Vector3.Lerp(character_old_pos, character_new_pos, fracJourney);        	
 	        if (transform.position == endPosition) {
                 isMoving = false;
                 foreach (Transform child in new_focus.transform)
@@ -35,6 +41,7 @@ public class CameraScroll : MonoBehaviour {
                      } 
                 old_focus.SetActive(false);
                 old_focus = new_focus;
+                character.GetComponent<ThirdPersonUserControl>().enabled = true;
             }
         }
     }
@@ -49,6 +56,11 @@ public class CameraScroll : MonoBehaviour {
         endPosition = obj.transform.position + offset;
         startTime = Time.time;
         journeyLength = Vector3.Distance(startPosition, endPosition);
+        character.GetComponent<ThirdPersonUserControl>().enabled = false;
+        character_old_pos = character.transform.position;
+        Vector3 movementDirection = (endPosition-startPosition);
+        movementDirection.Normalize();
+        character_new_pos = character_old_pos + Vector3.Scale(movementDirection, character.GetComponentsInChildren<Collider>()[0].bounds.size);
         isMoving = true;
     } 
 

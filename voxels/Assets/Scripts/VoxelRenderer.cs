@@ -114,32 +114,37 @@ public class VoxelRenderer : MonoBehaviour {
         faceCount=0; //Fixed: Added this thanks to a bug pointed out by ratnushock!
     }
 
+    void GreedyMeshing() {
+        for (int x = start_x; x < start_x + chunk_x_size; x++)
+    }
+
     void DrawVoxelBufferChunk() {
-        for (int x = start_x; x < start_x + chunk_x_size; x++) {
-            for (int y = start_y; y < start_y + chunk_y_size; y++) {
-                for (int z = start_z; z < start_z + chunk_z_size; z++) {
-                    if (voxel_buffer[x,y,z] == 0) continue;
-                    if (y == VoxelBuffer.instance.buffer_y_size-1 || voxel_buffer[x,y+1,z] == 0) {
-                        CubeTop(x,y,z,0);
-                    }
-                    if (y == 0 || voxel_buffer[x,y-1,z] == 0) {
-                        CubeBot(x,y,z,0);
-                    }
-                    if (x == 0 || voxel_buffer[x-1,y,z] ==0) {
-                        CubeWest(x,y,z,0);
-                    }
-                    if (x == VoxelBuffer.instance.buffer_x_size-1 || voxel_buffer[x+1,y,z] ==0) {
-                        CubeEast(x,y,z,0);
-                    }
-                    if (z == 0 || voxel_buffer[x,y,z-1] ==0) {
-                        CubeSouth(x,y,z,0);
-                    }
-                    if (z == VoxelBuffer.instance.buffer_z_size-1 || voxel_buffer[x,y,z+1] ==0) {
-                        CubeNorth(x,y,z,0);
-                    }
-                }
-            }
-        }
+        // for (int x = start_x; x < start_x + chunk_x_size; x++) {
+        //     for (int y = start_y; y < start_y + chunk_y_size; y++) {
+        //         for (int z = start_z; z < start_z + chunk_z_size; z++) {
+        //             if (voxel_buffer[x,y,z] == 0) continue;
+        //             if (y == VoxelBuffer.instance.buffer_y_size-1 || voxel_buffer[x,y+1,z] == 0) {
+        //                 CubeTop(x,y,z,0);
+        //             }
+        //             if (y == 0 || voxel_buffer[x,y-1,z] == 0) {
+        //                 CubeBot(x,y,z,0);
+        //             }
+        //             if (x == 0 || voxel_buffer[x-1,y,z] ==0) {
+        //                 CubeWest(x,y,z,0);
+        //             }
+        //             if (x == VoxelBuffer.instance.buffer_x_size-1 || voxel_buffer[x+1,y,z] ==0) {
+        //                 CubeEast(x,y,z,0);
+        //             }
+        //             if (z == 0 || voxel_buffer[x,y,z-1] ==0) {
+        //                 CubeSouth(x,y,z,0);
+        //             }
+        //             if (z == VoxelBuffer.instance.buffer_z_size-1 || voxel_buffer[x,y,z+1] ==0) {
+        //                 CubeNorth(x,y,z,0);
+        //             }
+        //         }
+        //     }
+        // }
+        GreedyMeshing();
         UpdateMesh();
     }
 }

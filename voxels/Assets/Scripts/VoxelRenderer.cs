@@ -97,6 +97,14 @@ public class VoxelRenderer : MonoBehaviour {
         MakeFace();
     }
 
+    void MakeQuad(int[] x, int[] du, int[] dv) {
+        newVertices.Add(new Vector3 (x[0], x[1], x[2]));
+        newVertices.Add(new Vector3 (x[0]+du[0], x[1]+du[1], x[2]+du[2]));
+        newVertices.Add(new Vector3 (x[0]+du[0]+dv[0], x[1]+du[1]+dv[1], x[2]+du[2]+dv[2]));
+        newVertices.Add(new Vector3 (x[0]+dv[0], x[1]+dv[1], x[2]+dv[2]));
+        MakeFace();
+    }
+
     void UpdateMesh ()
     {
         mesh.Clear ();
@@ -115,7 +123,92 @@ public class VoxelRenderer : MonoBehaviour {
     }
 
     void GreedyMeshing() {
-        for (int x = start_x; x < start_x + chunk_x_size; x++)
+
+        int[] dims = {chunk_x_size, chunk_y_size, chunk_z_size};
+
+        // d is the direction we sweep in (x, y or z)
+        for (int d=0; d<3; d++) {
+            int[] x = {0, 0, 0};
+            int[] q = {0, 0, 0};
+            int u = (d+1)%3;
+            int v = (d+2)%3;
+            bool[,] mask = new bool[dims[u], dims[v]];
+            q[d] = 1;
+            for(x[d]=-1; x[d] < dims[d]; ) {
+                // Compute mask
+                for(x[v]=0; x[v] < dims[v]; x[v]++) {
+                    for(x[u]=0; x[u] < dims[v]; x[u]++) {
+                        bool vox1 = false;
+                        if ( x[d] >= 0 && voxel_buffer[start_x + x[0], start_y + x[1], start_z + x[2]] != 0 ) {
+                            vox1 = true;
+                        }
+                        bool vox2 = false;
+                        if( x[d] < dims[d]-1 && voxel_buffer[start_x + x[0] + q[0], start_y + x[1] + q[1], start_z + x[2] + q[2]] != 0 ) {
+                            vox2 = true;
+                        }                        
+                        mask[x[u], x[v]] = (vox1 != vox2);
+                    }
+                }
+            
+                x[d]++;
+
+                for (int j=0; j<dims[v]; j++) {
+                    for (int i=0; i < dims[u]; ) {
+                        if (mask[i,j]) {
+                            int w;
+                            for (w=1; i+w<dims[u] && mask[i+w,j] ; ++w) {
+                            }
+
+                            // Compute the height of the quad
+                            bool done = false;
+                            int h;
+                            for (h=1; j+h<dims[v]; h++) {
+                                for(int k = 0; k<w; k++) {
+                                    if(!mask[i+k,j+h]) {
+                                        done = true;
+                                        break;
+                                    }
+                                }
+                                if(done) {
+                                    break;
+                                }
+                            }
+
+                            // Create quad with the computed size
+
+                            int[] du = {0, 0, 0};
+                            int[] dv = {0, 0, 0};
+                            x[u] = i;
+                            x[v] = j;
+                            x[0] += start_x;
+                            x[1] += start_y;
+                            x[2] += start_z;
+                            du[u] = w;
+                            dv[v] = h;
+
+                            MakeQuad(x, du, dv);
+
+                            // Zero out the already processed mask
+                            for (int l = 0; l<h; l++) {
+                                for (int k = 0; k<w; k++) {
+                                    mask[i+k,j+l] = false;
+                                }
+                            }
+
+                            i+=w;
+                        } else {
+                            i++;
+                        }
+                    }
+                }
+
+            }
+
+
+
+
+        }
+
     }
 
     void DrawVoxelBufferChunk() {

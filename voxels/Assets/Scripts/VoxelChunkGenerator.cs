@@ -7,9 +7,9 @@ public class VoxelChunkGenerator : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-        for (int x = 0; x < 8; x++) {
-            for (int y = 0; y < 8; y++) {
-                for (int z = 0; z < 8; z++) {
+        for (int x = 0; x < 1; x++) {
+            for (int y = 0; y < 1; y++) {
+                for (int z = 0; z < 1; z++) {
                     VoxelRenderer new_voxel_chunk;
                     new_voxel_chunk = (VoxelRenderer) Instantiate(voxel_chunk, new Vector3(0f, 0f, 0f), Quaternion.identity);
                     new_voxel_chunk.start_x = x*new_voxel_chunk.chunk_x_size;

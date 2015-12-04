@@ -46,6 +46,7 @@ public class VoxelBuffer : MonoBehaviour {
     public int buffer_y_size = 128;
     public int buffer_z_size = 128;
     public int density = 50;
+    public int voxel_types = 1;
 
 	// Use this for initialization
 	void Start () {
@@ -74,7 +75,7 @@ public class VoxelBuffer : MonoBehaviour {
                     int vox_prob = Random.Range(0,100);
                     int vox = 0;
                     if (vox_prob < density) {
-                        vox = 1;
+                        vox = Random.Range(1, voxel_types+1);
                     }
                     voxel_buffer[x, y, z] = vox;
                 }

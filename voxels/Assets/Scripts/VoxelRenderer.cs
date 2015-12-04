@@ -5,6 +5,9 @@ using System.Collections.Generic;
 public class VoxelRenderer : MonoBehaviour {
 
     private int[,,] voxel_buffer;
+    private int buffer_x_size;
+    private int buffer_y_size;
+    private int buffer_z_size;
     public int chunk_x_size = 16;
     public int chunk_y_size = 16;
     public int chunk_z_size = 16;
@@ -27,6 +30,9 @@ public class VoxelRenderer : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         voxel_buffer = VoxelBuffer.instance.voxel_buffer;
+        buffer_x_size = VoxelBuffer.instance.buffer_x_size;
+        buffer_y_size = VoxelBuffer.instance.buffer_y_size;
+        buffer_z_size = VoxelBuffer.instance.buffer_z_size;
 
         mesh = GetComponent<MeshFilter> ().mesh;
         col = GetComponent<MeshCollider> ();
@@ -97,11 +103,18 @@ public class VoxelRenderer : MonoBehaviour {
         MakeFace();
     }
 
-    void MakeQuad(int[] x, int[] du, int[] dv) {
-        newVertices.Add(new Vector3 (x[0], x[1], x[2]));
-        newVertices.Add(new Vector3 (x[0]+du[0], x[1]+du[1], x[2]+du[2]));
-        newVertices.Add(new Vector3 (x[0]+du[0]+dv[0], x[1]+du[1]+dv[1], x[2]+du[2]+dv[2]));
-        newVertices.Add(new Vector3 (x[0]+dv[0], x[1]+dv[1], x[2]+dv[2]));
+    void MakeQuad(int[] x, int[] du, int[] dv, bool invert=false) {
+        if (invert) {
+            newVertices.Add(new Vector3 (x[0]+dv[0], x[1]+dv[1], x[2]+dv[2]));
+            newVertices.Add(new Vector3 (x[0]+du[0]+dv[0], x[1]+du[1]+dv[1], x[2]+du[2]+dv[2]));
+            newVertices.Add(new Vector3 (x[0]+du[0], x[1]+du[1], x[2]+du[2]));
+            newVertices.Add(new Vector3 (x[0], x[1], x[2]));
+        } else {
+            newVertices.Add(new Vector3 (x[0], x[1], x[2]));
+            newVertices.Add(new Vector3 (x[0]+du[0], x[1]+du[1], x[2]+du[2]));
+            newVertices.Add(new Vector3 (x[0]+du[0]+dv[0], x[1]+du[1]+dv[1], x[2]+du[2]+dv[2]));
+            newVertices.Add(new Vector3 (x[0]+dv[0], x[1]+dv[1], x[2]+dv[2]));
+        }
         MakeFace();
     }
 
@@ -125,6 +138,8 @@ public class VoxelRenderer : MonoBehaviour {
     void GreedyMeshing() {
 
         int[] dims = {chunk_x_size, chunk_y_size, chunk_z_size};
+        int[] buffer_size = {buffer_x_size, buffer_y_size, buffer_z_size};
+        int[] starting = {start_x, start_y, start_z};
 
         // d is the direction we sweep in (x, y or z)
         for (int d=0; d<3; d++) {
@@ -132,21 +147,26 @@ public class VoxelRenderer : MonoBehaviour {
             int[] q = {0, 0, 0};
             int u = (d+1)%3;
             int v = (d+2)%3;
-            bool[,] mask = new bool[dims[u], dims[v]];
+            int[,] mask = new int[dims[u], dims[v]];
             q[d] = 1;
             for(x[d]=-1; x[d] < dims[d]; ) {
                 // Compute mask
                 for(x[v]=0; x[v] < dims[v]; x[v]++) {
                     for(x[u]=0; x[u] < dims[v]; x[u]++) {
-                        bool vox1 = false;
-                        if ( x[d] >= 0 && voxel_buffer[start_x + x[0], start_y + x[1], start_z + x[2]] != 0 ) {
-                            vox1 = true;
+                        int vox1 = 0;
+                        if ( x[d] + starting[d] >= 0 && voxel_buffer[start_x + x[0], start_y + x[1], start_z + x[2]] != 0 ) {
+                            vox1 = voxel_buffer[start_x + x[0], start_y + x[1], start_z + x[2]];
                         }
-                        bool vox2 = false;
-                        if( x[d] < dims[d]-1 && voxel_buffer[start_x + x[0] + q[0], start_y + x[1] + q[1], start_z + x[2] + q[2]] != 0 ) {
-                            vox2 = true;
-                        }                        
-                        mask[x[u], x[v]] = (vox1 != vox2);
+                        int vox2 = 0;
+                        if( x[d] + starting[d] < buffer_size[d]-1 && voxel_buffer[start_x + x[0] + q[0], start_y + x[1] + q[1], start_z + x[2] + q[2]] != 0 ) {
+                            vox2 = voxel_buffer[start_x + x[0] + q[0], start_y + x[1] + q[1], start_z + x[2] + q[2]];
+                        }
+                        if (vox1 != vox2) {
+                            if (vox2 == 0)
+                                mask[x[u], x[v]] = vox1;
+                            else if (vox1 == 0)
+                                mask[x[u], x[v]] = -vox2;
+                        }
                     }
                 }
             
@@ -154,9 +174,9 @@ public class VoxelRenderer : MonoBehaviour {
 
                 for (int j=0; j<dims[v]; j++) {
                     for (int i=0; i < dims[u]; ) {
-                        if (mask[i,j]) {
+                        if (mask[i,j] != 0) {
                             int w;
-                            for (w=1; i+w<dims[u] && mask[i+w,j] ; ++w) {
+                            for (w=1; i+w<dims[u] && (mask[i+w,j] == mask[i,j]) ; ++w) {
                             }
 
                             // Compute the height of the quad
@@ -164,7 +184,7 @@ public class VoxelRenderer : MonoBehaviour {
                             int h;
                             for (h=1; j+h<dims[v]; h++) {
                                 for(int k = 0; k<w; k++) {
-                                    if(!mask[i+k,j+h]) {
+                                    if(mask[i+k,j+h] != mask[i,j]) {
                                         done = true;
                                         break;
                                     }
@@ -180,18 +200,16 @@ public class VoxelRenderer : MonoBehaviour {
                             int[] dv = {0, 0, 0};
                             x[u] = i;
                             x[v] = j;
-                            x[0] += start_x;
-                            x[1] += start_y;
-                            x[2] += start_z;
+                            int[] x_offset = {x[0]+start_x, x[1]+start_y, x[2]+start_z};
                             du[u] = w;
                             dv[v] = h;
 
-                            MakeQuad(x, du, dv);
+                            MakeQuad(x_offset, du, dv, mask[i,j] < 0);
 
                             // Zero out the already processed mask
                             for (int l = 0; l<h; l++) {
                                 for (int k = 0; k<w; k++) {
-                                    mask[i+k,j+l] = false;
+                                    mask[i+k,j+l] = 0;
                                 }
                             }
 

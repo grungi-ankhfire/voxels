@@ -17,6 +17,7 @@ public class VoxelRenderer : MonoBehaviour {
     public int start_z = 0;
 
     public List<Vector3> newVertices = new List<Vector3>();
+    public List<Color> newColors = new List<Color>();
     public List<int> newTriangles = new List<int>();
     private List<Vector2> newUV = new List<Vector2>();
   
@@ -42,7 +43,6 @@ public class VoxelRenderer : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
-	
 	}
 
     void MakeFace() {
@@ -123,14 +123,16 @@ public class VoxelRenderer : MonoBehaviour {
         mesh.Clear ();
         mesh.vertices = newVertices.ToArray();
         mesh.triangles = newTriangles.ToArray();
+        mesh.colors = newColors.ToArray();
         mesh.Optimize ();
         mesh.RecalculateNormals ();
 
-        col.sharedMesh=null;
-        col.sharedMesh=mesh;
+        //col.sharedMesh=null;
+        //col.sharedMesh=mesh;
 
         newVertices.Clear();
         newTriangles.Clear(); 
+        newColors.Clear();
 
         faceCount=0; //Fixed: Added this thanks to a bug pointed out by ratnushock!
     }
@@ -205,7 +207,14 @@ public class VoxelRenderer : MonoBehaviour {
                             dv[v] = h;
 
                             MakeQuad(x_offset, du, dv, mask[i,j] < 0);
-
+                            Color my_color = Color.red;
+                            if (Mathf.Abs(mask[i,j]) == 2) {
+                                my_color = Color.green;
+                            }
+                            newColors.Add(my_color);
+                            newColors.Add(my_color);
+                            newColors.Add(my_color);
+                            newColors.Add(my_color);
                             // Zero out the already processed mask
                             for (int l = 0; l<h; l++) {
                                 for (int k = 0; k<w; k++) {

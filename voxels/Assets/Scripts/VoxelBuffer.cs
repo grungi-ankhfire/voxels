@@ -26,7 +26,13 @@ public class VoxelBuffer : MonoBehaviour {
         {
             //If I am the first instance, make me the Singleton
             _instance = this;
-            voxel_buffer = new int[buffer_x_size, buffer_y_size, buffer_z_size];
+            voxel_buffer = new int[buffer_x_size][][];
+            for (int x = 0; x < buffer_x_size; x++) {
+                voxel_buffer[x] = new int[buffer_y_size][];
+                for (int y = 0; y < buffer_y_size; y++) {
+                    voxel_buffer[x][y] = new int[buffer_z_size];
+                }
+            }
             //FillBufferRandomly();
             FillBufferRandomlyWithDensity();
             //FillBufferBlock();
@@ -41,7 +47,7 @@ public class VoxelBuffer : MonoBehaviour {
         }
     }
 
-    public int[,,] voxel_buffer;
+    public int[][][] voxel_buffer;
     public int buffer_x_size = 128;
     public int buffer_y_size = 128;
     public int buffer_z_size = 128;
@@ -62,7 +68,7 @@ public class VoxelBuffer : MonoBehaviour {
         for (int x = 0; x < buffer_x_size; x++) {
             for (int y = 0; y < buffer_y_size; y++) {
                 for (int z = 0; z < buffer_z_size; z++) {
-                    voxel_buffer[x, y, z] = Random.Range(0, 2);
+                    voxel_buffer[x][y][z] = Random.Range(0, 2);
                 }
             }
         }
@@ -77,7 +83,7 @@ public class VoxelBuffer : MonoBehaviour {
                     if (vox_prob < density) {
                         vox = Random.Range(1, voxel_types+1);
                     }
-                    voxel_buffer[x, y, z] = vox;
+                    voxel_buffer[x][y][z] = vox;
                 }
             }
         }
@@ -89,7 +95,7 @@ public class VoxelBuffer : MonoBehaviour {
                 for (int z = 0; z < buffer_z_size; z++) {
                     int voxel = 0;
                     if (x < 64 && y < 64 && z < 64) voxel = 1;
-                    voxel_buffer[x, y, z] = voxel;
+                    voxel_buffer[x][y][z] = voxel;
                 }
             }
         }

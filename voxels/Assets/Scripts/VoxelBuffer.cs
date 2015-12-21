@@ -48,9 +48,9 @@ public class VoxelBuffer : MonoBehaviour {
     }
 
     public int[][][] voxel_buffer;
-    public int buffer_x_size = 128;
-    public int buffer_y_size = 128;
-    public int buffer_z_size = 128;
+    public int buffer_x_size = 32;
+    public int buffer_y_size = 32;
+    public int buffer_z_size = 32;
     public int density = 50;
     public int voxel_types = 1;
 

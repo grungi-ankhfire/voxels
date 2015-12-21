@@ -5,9 +5,6 @@ using System.Collections.Generic;
 public class VoxelRenderer : MonoBehaviour {
 
     private int[][][] voxel_buffer;
-    private int buffer_x_size;
-    private int buffer_y_size;
-    private int buffer_z_size;
     public int chunk_x_size = 16;
     public int chunk_y_size = 16;
     public int chunk_z_size = 16;
@@ -16,9 +13,26 @@ public class VoxelRenderer : MonoBehaviour {
     public int start_y = 0;
     public int start_z = 0;
 
+    public int offset_start_x = 0;
+    public int offset_start_y = 0;
+    public int offset_start_z = 0;
+    public int offset_end_x = 0;
+    public int offset_end_y = 0;
+    public int offset_end_z = 0;
+
     private int[] dims;
     private int[] buffer_size;
     private int[] starting;
+    private int[] offset_start;
+    private int[] offset_end;
+
+    // Testing stuff :p
+    public bool wavy_y = false;
+    public int delay = 0;
+    public int frame = 0;
+    private int wavy_direction = 1;
+    // End testing stuff
+
 
     public List<Vector3> newVertices = new List<Vector3>();
     public List<Color> newColors = new List<Color>();
@@ -39,13 +53,14 @@ public class VoxelRenderer : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         voxel_buffer = VoxelBuffer.instance.voxel_buffer;
-        buffer_x_size = VoxelBuffer.instance.buffer_x_size;
-        buffer_y_size = VoxelBuffer.instance.buffer_y_size;
-        buffer_z_size = VoxelBuffer.instance.buffer_z_size;
 
         dims = new int[3] {chunk_x_size, chunk_y_size, chunk_z_size};
-        buffer_size = new int[3] {buffer_x_size, buffer_y_size, buffer_z_size};
+        buffer_size = new int[3] {VoxelBuffer.instance.buffer_x_size,
+                                  VoxelBuffer.instance.buffer_y_size,
+                                  VoxelBuffer.instance.buffer_z_size};
         starting = new int[3] {start_x, start_y, start_z};
+        offset_start = new int[3] {offset_start_x, offset_start_y, offset_start_z};
+        offset_end = new int[3] {offset_end_x, offset_end_y, offset_end_z};
 
         mesh = GetComponent<MeshFilter> ().mesh;
         mesh.MarkDynamic();
@@ -57,11 +72,35 @@ public class VoxelRenderer : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
         if (dirty) {
+            offset_start = new int[3] {offset_start_x, offset_start_y, offset_start_z};
+            offset_end = new int[3] {offset_end_x, offset_end_y, offset_end_z};
             DrawVoxelBufferChunk();
             dirty = false;
-        } // else {
-        //     int vox_prob = Random.Range(0,1000);
-        //     if (vox_prob == 666) {
+        }
+        if (delay > 0) {
+            delay--;
+            return;
+        }
+        if (wavy_y) {
+            frame +=1;
+            if (frame == 1) {
+                frame = 0;
+                if (wavy_direction == 1) {
+                    offset_end_y = (++offset_end_y % 16 );
+                    if (offset_end_y == 15)
+                        wavy_direction = -1;
+                }
+                else {
+                    offset_end_y = --offset_end_y;
+                    if (offset_end_y == 0)
+                        wavy_direction = 1;
+                }
+                dirty = true;
+            }
+        }
+        // else {
+        //     int vox_prob = Random.Range(0,100);
+        //     if (vox_prob == 1) {
         //         dirty=true;
         //     }
         // }
@@ -76,55 +115,7 @@ public class VoxelRenderer : MonoBehaviour {
         newTriangles.Add(faceCount * 4 + 3 ); //4
         faceCount++; // Add this line        
     }
-
-    void CubeTop (int x, int y, int z, byte block) {
-        newVertices.Add(new Vector3 (x,  y,  z + 1));
-        newVertices.Add(new Vector3 (x + 1, y,  z + 1));
-        newVertices.Add(new Vector3 (x + 1, y,  z ));
-        newVertices.Add(new Vector3 (x,  y,  z ));
-        MakeFace();
-    }
-
-    void CubeNorth (int x, int y, int z, byte block) {     
-        newVertices.Add(new Vector3 (x + 1, y-1, z + 1));
-        newVertices.Add(new Vector3 (x + 1, y, z + 1));
-        newVertices.Add(new Vector3 (x, y, z + 1));
-        newVertices.Add(new Vector3 (x, y-1, z + 1));
-        MakeFace();
-    }
-
-    void CubeEast (int x, int y, int z, byte block) {
-        newVertices.Add(new Vector3 (x + 1, y - 1, z));
-        newVertices.Add(new Vector3 (x + 1, y, z));
-        newVertices.Add(new Vector3 (x + 1, y, z + 1));
-        newVertices.Add(new Vector3 (x + 1, y - 1, z + 1));
-        MakeFace();
-    }
-
-    void CubeSouth (int x, int y, int z, byte block) {
-        newVertices.Add(new Vector3 (x, y - 1, z));
-        newVertices.Add(new Vector3 (x, y, z));
-        newVertices.Add(new Vector3 (x + 1, y, z));
-        newVertices.Add(new Vector3 (x + 1, y - 1, z));
-        MakeFace();
-    }
-
-    void CubeWest (int x, int y, int z, byte block) {     
-        newVertices.Add(new Vector3 (x, y- 1, z + 1));
-        newVertices.Add(new Vector3 (x, y, z + 1));
-        newVertices.Add(new Vector3 (x, y, z));
-        newVertices.Add(new Vector3 (x, y - 1, z));
-        MakeFace();
-    }
-
-    void CubeBot (int x, int y, int z, byte block) {  
-        newVertices.Add(new Vector3 (x,  y-1,  z ));
-        newVertices.Add(new Vector3 (x + 1, y-1,  z ));
-        newVertices.Add(new Vector3 (x + 1, y-1,  z + 1));
-        newVertices.Add(new Vector3 (x,  y-1,  z + 1));
-        MakeFace();
-    }
-
+ 
     void MakeQuad(int[] x, int[] du, int[] dv, bool invert=false) {
         if (invert) {
             newVertices.Add(new Vector3 (x[0]+dv[0], x[1]+dv[1], x[2]+dv[2]));
@@ -146,10 +137,10 @@ public class VoxelRenderer : MonoBehaviour {
         mesh.vertices = newVertices.ToArray();
         mesh.triangles = newTriangles.ToArray();
         mesh.colors = newColors.ToArray();
-        //mesh.Optimize ();
-        //mesh.RecalculateNormals ();
-        //col.sharedMesh=null;
-        //col.sharedMesh=mesh;
+        mesh.Optimize ();
+        mesh.RecalculateNormals ();
+        col.sharedMesh=null;
+        col.sharedMesh=mesh;
 
         newVertices.Clear();
         newTriangles.Clear(); 
@@ -179,16 +170,23 @@ public class VoxelRenderer : MonoBehaviour {
             for (int k = 0; k < dims[u]; k++) {
                 mask[k] = new int[dims[v]];
             }
-            for(x[d]=-1; x[d] < dims[d]; ) {
+            for(x[d] = offset_start[d] - 1; x[d] < dims[d]-offset_end[d]; ) {
                 // Compute mask
-                for(x[v]=0; x[v] < dims[v]; x[v]++) {
-                    for(x[u]=0; x[u] < dims[v]; x[u]++) {
+                for(x[v]=0+offset_start[v]; x[v] < dims[v]-offset_end[v]; x[v]++) {
+                    for(x[u]=0+offset_start[u]; x[u] < dims[u]-offset_end[u]; x[u]++) {
                         vox1 = 0;
-                        if ( x[d] + starting[d] >= 0 && voxel_buffer[start_x + x[0]][start_y + x[1]][start_z + x[2]] != 0 ) {
+                        if (x[d] + starting[d] - offset_start[d] >= 0
+                            && x[d] != offset_start[d] - 1
+                            && voxel_buffer[start_x + x[0]][start_y + x[1]][start_z + x[2]] != 0
+                           ) 
+                        {
                             vox1 = voxel_buffer[start_x + x[0]][start_y + x[1]][start_z + x[2]];
                         }
                         vox2 = 0;
-                        if( x[d] + starting[d] < buffer_size[d]-1 && voxel_buffer[start_x + x[0] + q[0]][start_y + x[1] + q[1]][start_z + x[2] + q[2]] != 0 ) {
+                        if (x[d] + starting[d] < buffer_size[d]-1
+                            && x[d] != dims[d]-offset_end[d]-1
+                            && voxel_buffer[start_x + x[0] + q[0]][start_y + x[1] + q[1]][start_z + x[2] + q[2]] != 0 )
+                        {
                             vox2 = voxel_buffer[start_x + x[0] + q[0]][start_y + x[1] + q[1]][start_z + x[2] + q[2]];
                         }
                         if (vox1 != vox2) {
@@ -258,12 +256,7 @@ public class VoxelRenderer : MonoBehaviour {
                 }
 
             }
-
-
-
-
         }
-
     }
 
     void DrawVoxelBufferChunk() {

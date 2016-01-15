@@ -26,15 +26,16 @@ public class VoxelBuffer : MonoBehaviour {
         {
             //If I am the first instance, make me the Singleton
             _instance = this;
-            voxel_buffer = new int[buffer_x_size][][];
+            voxel_buffer = new Voxel[buffer_x_size][][];
             for (int x = 0; x < buffer_x_size; x++) {
-                voxel_buffer[x] = new int[buffer_y_size][];
+                voxel_buffer[x] = new Voxel[buffer_y_size][];
                 for (int y = 0; y < buffer_y_size; y++) {
-                    voxel_buffer[x][y] = new int[buffer_z_size];
+                    voxel_buffer[x][y] = new Voxel[buffer_z_size];
                 }
             }
+            FillBufferFromMagickaVoxel();
             //FillBufferRandomly();
-            FillBufferRandomlyWithDensity();
+            //FillBufferRandomlyWithDensity();
             //FillBufferBlock();
             DontDestroyOnLoad(this);
         }
@@ -47,12 +48,14 @@ public class VoxelBuffer : MonoBehaviour {
         }
     }
 
-    public int[][][] voxel_buffer;
+    public Voxel[][][] voxel_buffer;
     public int buffer_x_size = 32;
     public int buffer_y_size = 32;
     public int buffer_z_size = 32;
     public int density = 50;
     public int voxel_types = 1;
+
+    public string vox_file;
 
 	// Use this for initialization
 	void Start () {
@@ -64,11 +67,15 @@ public class VoxelBuffer : MonoBehaviour {
 	
 	}
 
+    void FillBufferFromMagickaVoxel() {
+        voxel_buffer = MagickaVoxelImporter.MagickaVoxelImport(vox_file).voxels;
+    }
+
     void FillBufferRandomly() {
         for (int x = 0; x < buffer_x_size; x++) {
             for (int y = 0; y < buffer_y_size; y++) {
                 for (int z = 0; z < buffer_z_size; z++) {
-                    voxel_buffer[x][y][z] = Random.Range(0, 2);
+                    //voxel_buffer[x][y][z] = Random.Range(0, 2);
                 }
             }
         }
@@ -82,8 +89,10 @@ public class VoxelBuffer : MonoBehaviour {
                     int vox = 0;
                     if (vox_prob < density) {
                         vox = Random.Range(1, voxel_types+1);
+                        voxel_buffer[x][y][z] = new Voxel(0);
+                    } else {
+                        voxel_buffer[x][y][z] = null;
                     }
-                    voxel_buffer[x][y][z] = vox;
                 }
             }
         }
@@ -95,7 +104,7 @@ public class VoxelBuffer : MonoBehaviour {
                 for (int z = 0; z < buffer_z_size; z++) {
                     int voxel = 0;
                     if (x < 64 && y < 64 && z < 64) voxel = 1;
-                    voxel_buffer[x][y][z] = voxel;
+                    //voxel_buffer[x][y][z] = voxel;
                 }
             }
         }

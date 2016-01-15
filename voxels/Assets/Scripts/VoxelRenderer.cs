@@ -1,10 +1,10 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
 public class VoxelRenderer : MonoBehaviour {
 
-    private int[][][] voxel_buffer;
+    private Voxel[][][] voxel_buffer;
     public int chunk_x_size = 16;
     public int chunk_y_size = 16;
     public int chunk_z_size = 16;
@@ -20,11 +20,11 @@ public class VoxelRenderer : MonoBehaviour {
     public int offset_end_y = 0;
     public int offset_end_z = 0;
 
-    private int[] dims;
-    private int[] buffer_size;
-    private int[] starting;
-    private int[] offset_start;
-    private int[] offset_end;
+    public int[] dims;
+    public int[] buffer_size;
+    public int[] starting;
+    public int[] offset_start;
+    public int[] offset_end;
 
     // Testing stuff :p
     public bool wavy_y = false;
@@ -35,7 +35,7 @@ public class VoxelRenderer : MonoBehaviour {
 
 
     public List<Vector3> newVertices = new List<Vector3>();
-    public List<Color> newColors = new List<Color>();
+    public List<Color32> newColors = new List<Color32>();
     public List<int> newTriangles = new List<int>();
     private List<Vector2> newUV = new List<Vector2>();
   
@@ -46,18 +46,45 @@ public class VoxelRenderer : MonoBehaviour {
   
     private int faceCount;
 
-    private int[][] mask;
+    private MaskData[][] mask;
 
     public bool dirty = false;
 
+    private Color32[] palette;
+
+    private class MaskData
+    {
+        public Color32 color;
+        public bool reverse;
+
+        public MaskData(Color32 col, bool rev) {
+            color = col;
+            reverse = rev;
+        }
+
+        public bool Equals(MaskData other)
+        {
+            // If parameter is null return false:
+            if ((object)other == null)
+            {
+                return false;
+            }
+
+            // Return true if the fields match:
+            return (color.Equals(other.color) && (reverse == other.reverse));
+        }
+    }
+
 	// Use this for initialization
 	void Start () {
-        voxel_buffer = VoxelBuffer.instance.voxel_buffer;
+        //voxel_buffer = VoxelBuffer.instance.voxel_buffer;
+
+        VoxelVolume volume = transform.parent.gameObject.GetComponent<VoxelVolume>();
+        voxel_buffer = volume.voxels;
+        palette = volume.palette.colors;
 
         dims = new int[3] {chunk_x_size, chunk_y_size, chunk_z_size};
-        buffer_size = new int[3] {VoxelBuffer.instance.buffer_x_size,
-                                  VoxelBuffer.instance.buffer_y_size,
-                                  VoxelBuffer.instance.buffer_z_size};
+        buffer_size = volume.size;
         starting = new int[3] {start_x, start_y, start_z};
         offset_start = new int[3] {offset_start_x, offset_start_y, offset_start_z};
         offset_end = new int[3] {offset_end_x, offset_end_y, offset_end_z};
@@ -136,7 +163,7 @@ public class VoxelRenderer : MonoBehaviour {
         mesh.Clear ();
         mesh.vertices = newVertices.ToArray();
         mesh.triangles = newTriangles.ToArray();
-        mesh.colors = newColors.ToArray();
+        mesh.colors32 = newColors.ToArray();
         mesh.Optimize ();
         mesh.RecalculateNormals ();
         col.sharedMesh=null;
@@ -151,7 +178,7 @@ public class VoxelRenderer : MonoBehaviour {
 
     void GreedyMeshing() {
 
-        int vox1, vox2;
+        Voxel vox1, vox2;
         int[] x = {0, 0, 0};
         int[] q = {0, 0, 0};
 
@@ -166,34 +193,34 @@ public class VoxelRenderer : MonoBehaviour {
             int u = (d+1)%3;
             int v = (d+2)%3;
             q[d] = 1;
-            mask = new int[dims[u]][];
+            mask = new MaskData[dims[u]][];
             for (int k = 0; k < dims[u]; k++) {
-                mask[k] = new int[dims[v]];
+                mask[k] = new MaskData[dims[v]];
             }
             for(x[d] = offset_start[d] - 1; x[d] < dims[d]-offset_end[d]; ) {
                 // Compute mask
                 for(x[v]=0+offset_start[v]; x[v] < dims[v]-offset_end[v]; x[v]++) {
                     for(x[u]=0+offset_start[u]; x[u] < dims[u]-offset_end[u]; x[u]++) {
-                        vox1 = 0;
+                        vox1 = null;
                         if (x[d] + starting[d] - offset_start[d] >= 0
                             && x[d] != offset_start[d] - 1
-                            && voxel_buffer[start_x + x[0]][start_y + x[1]][start_z + x[2]] != 0
+                            && voxel_buffer[start_x + x[0]][start_y + x[1]][start_z + x[2]] != null
                            ) 
                         {
                             vox1 = voxel_buffer[start_x + x[0]][start_y + x[1]][start_z + x[2]];
                         }
-                        vox2 = 0;
+                        vox2 = null;
                         if (x[d] + starting[d] < buffer_size[d]-1
                             && x[d] != dims[d]-offset_end[d]-1
-                            && voxel_buffer[start_x + x[0] + q[0]][start_y + x[1] + q[1]][start_z + x[2] + q[2]] != 0 )
+                            && voxel_buffer[start_x + x[0] + q[0]][start_y + x[1] + q[1]][start_z + x[2] + q[2]] != null )
                         {
                             vox2 = voxel_buffer[start_x + x[0] + q[0]][start_y + x[1] + q[1]][start_z + x[2] + q[2]];
                         }
                         if (vox1 != vox2) {
-                            if (vox2 == 0)
-                                mask[x[u]][x[v]] = vox1;
-                            else if (vox1 == 0)
-                                mask[x[u]][x[v]] = -vox2;
+                            if (vox2 == null)
+                                mask[x[u]][x[v]] = new MaskData(palette[vox1.id-1], false);
+                            else if (vox1 == null)
+                                mask[x[u]][x[v]] = new MaskData(palette[vox2.id-1], true);
                         }
                     }
                 }
@@ -202,9 +229,10 @@ public class VoxelRenderer : MonoBehaviour {
 
                 for (int j=0; j<dims[v]; j++) {
                     for (int i=0; i < dims[u]; ) {
-                        if (mask[i][j] != 0) {
+                        if (mask[i][j] != null) {
                             int w;
-                            for (w=1; i+w<dims[u] && (mask[i+w][j] == mask[i][j]) ; ++w) {
+                            for (w=1; (i+w<dims[u])
+                                      && mask[i][j].Equals(mask[i+w][j]) ; ++w) {
                             }
 
                             // Compute the height of the quad
@@ -212,7 +240,7 @@ public class VoxelRenderer : MonoBehaviour {
                             int h;
                             for (h=1; j+h<dims[v]; h++) {
                                 for(int k = 0; k<w; k++) {
-                                    if(mask[i+k][j+h] != mask[i][j]) {
+                                    if( !mask[i][j].Equals(mask[i+k][j+h]) ) {
                                         done = true;
                                         break;
                                     }
@@ -232,11 +260,8 @@ public class VoxelRenderer : MonoBehaviour {
                             du[u] = w;
                             dv[v] = h;
 
-                            MakeQuad(x_offset, du, dv, mask[i][j] < 0);
-                            Color my_color = Color.red;
-                            if (Mathf.Abs(mask[i][j]) == 2) {
-                                my_color = Color.green;
-                            }
+                            MakeQuad(x_offset, du, dv, mask[i][j].reverse);
+                            Color32 my_color = mask[i][j].color;
                             newColors.Add(my_color);
                             newColors.Add(my_color);
                             newColors.Add(my_color);
@@ -244,7 +269,7 @@ public class VoxelRenderer : MonoBehaviour {
                             // Zero out the already processed mask
                             for (int l = 0; l<h; l++) {
                                 for (int k = 0; k<w; k++) {
-                                    mask[i+k][j+l] = 0;
+                                    mask[i+k][j+l] = null;
                                 }
                             }
 

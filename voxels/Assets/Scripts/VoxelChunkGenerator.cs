@@ -15,10 +15,10 @@ public class VoxelChunkGenerator : MonoBehaviour {
                     new_voxel_chunk.start_x = x*new_voxel_chunk.chunk_x_size;
                     new_voxel_chunk.start_y = y*new_voxel_chunk.chunk_y_size;
                     new_voxel_chunk.start_z = z*new_voxel_chunk.chunk_z_size;
-                    if (y == 7) {
-                        new_voxel_chunk.wavy_y = true;
-                        new_voxel_chunk.delay = Mathf.Max(x,z) * 1;
-                    }
+                    // if (y == 7) {
+                    //     new_voxel_chunk.wavy_y = true;
+                    //     new_voxel_chunk.delay = Mathf.Max(x,z) * 1;
+                    // }
                     
                 }
             }

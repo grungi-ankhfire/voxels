@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -7,6 +8,7 @@ public struct MagickaVoxelModel {
      public Voxel[][][] voxels;
      public Color32[] palette;
      public int[] size;
+     public bool[][][] chunks;
 }
 
 public static class MagickaVoxelImporter {
@@ -41,6 +43,7 @@ public static class MagickaVoxelImporter {
         stream.ReadInt32();
 
         Voxel[][][] voxels; 
+        bool[][][] chunks;
 
         MagickaVoxelModel result = new MagickaVoxelModel();
 
@@ -51,6 +54,14 @@ public static class MagickaVoxelImporter {
                 voxels[x][y] = new Voxel[1];
             }
         }
+
+        chunks = new bool[1][][];
+        for (int x = 0; x < 1; x++) {
+            chunks[x] = new bool[1][];
+            for (int y = 0; y < 1; y++) {
+                chunks[x][y] = new bool[1];
+            }
+        }   
 
         Color32[] colors = new Color32[256];
 
@@ -96,6 +107,18 @@ public static class MagickaVoxelImporter {
                         }
                     }
 
+                    int chunks_x = (int) Mathf.Ceil(sizex/16);
+                    int chunks_y = (int) Mathf.Ceil(sizey/16);
+                    int chunks_z = (int) Mathf.Ceil(sizez/16);
+                    chunks = new bool[chunks_x][][];
+                    for (int x = 0; x < chunks_x; x++) {
+                        chunks[x] = new bool[chunks_y][];
+                        for (int y = 0; y < chunks_y; y++) {
+                            chunks[x][y] = new bool[chunks_z];
+                        }
+                    }                    
+
+
                     //if (sizex > 32 || sizey > 32) subsample = true;
 
                     stream.ReadBytes(chunkSize - 4 * 3);
@@ -114,6 +137,7 @@ public static class MagickaVoxelImporter {
                         byte z = (byte)(stream.ReadByte());
                         byte c = (byte)(stream.ReadByte());
                         voxels[y][z][x] = new Voxel(c);
+                        chunks[(int) Mathf.Floor(y/16)][(int) Mathf.Floor(z/16)][(int) Mathf.Floor(x/16)] = true;
                     }
 
 
@@ -139,6 +163,7 @@ public static class MagickaVoxelImporter {
 
         result.voxels = voxels;
         result.palette = colors;
+        result.chunks = chunks;
         return result;
     }
 

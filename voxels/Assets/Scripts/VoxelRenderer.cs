@@ -56,22 +56,23 @@ public class VoxelRenderer : MonoBehaviour {
     {
         public Color32 color;
         public bool reverse;
+        public int id;
 
-        public MaskData(Color32 col, bool rev) {
-            color = col;
+        public MaskData(int id_new, bool rev) {
+            id = id_new;
             reverse = rev;
         }
 
         public bool Equals(MaskData other)
         {
             // If parameter is null return false:
-            if ((object)other == null)
+            if (other == null)
             {
                 return false;
             }
 
             // Return true if the fields match:
-            return (color.Equals(other.color) && (reverse == other.reverse));
+            return (id == other.id && reverse == other.reverse);
         }
     }
 
@@ -94,43 +95,6 @@ public class VoxelRenderer : MonoBehaviour {
         col = GetComponent<MeshCollider> ();
 
         DrawVoxelBufferChunk();
-	}
-
-	// Update is called once per frame
-	void Update () {
-        if (dirty) {
-            offset_start = new int[3] {offset_start_x, offset_start_y, offset_start_z};
-            offset_end = new int[3] {offset_end_x, offset_end_y, offset_end_z};
-            DrawVoxelBufferChunk();
-            dirty = false;
-        }
-        if (delay > 0) {
-            delay--;
-            return;
-        }
-        if (wavy_y) {
-            frame +=1;
-            if (frame == 1) {
-                frame = 0;
-                if (wavy_direction == 1) {
-                    offset_end_y = (++offset_end_y % 16 );
-                    if (offset_end_y == 15)
-                        wavy_direction = -1;
-                }
-                else {
-                    offset_end_y = --offset_end_y;
-                    if (offset_end_y == 0)
-                        wavy_direction = 1;
-                }
-                dirty = true;
-            }
-        }
-        // else {
-        //     int vox_prob = Random.Range(0,100);
-        //     if (vox_prob == 1) {
-        //         dirty=true;
-        //     }
-        // }
 	}
 
     void MakeFace() {
@@ -218,9 +182,9 @@ public class VoxelRenderer : MonoBehaviour {
                         }
                         if (vox1 != vox2) {
                             if (vox2 == null)
-                                mask[x[u]][x[v]] = new MaskData(palette[vox1.id-1], false);
+                                mask[x[u]][x[v]] = new MaskData(vox1.id-1, false);
                             else if (vox1 == null)
-                                mask[x[u]][x[v]] = new MaskData(palette[vox2.id-1], true);
+                                mask[x[u]][x[v]] = new MaskData(vox2.id-1, true);
                         }
                     }
                 }
@@ -256,12 +220,11 @@ public class VoxelRenderer : MonoBehaviour {
                             int[] dv = {0, 0, 0};
                             x[u] = i;
                             x[v] = j;
-                            int[] x_offset = {x[0]+start_x, x[1]+start_y, x[2]+start_z};
                             du[u] = w;
                             dv[v] = h;
 
-                            MakeQuad(x_offset, du, dv, mask[i][j].reverse);
-                            Color32 my_color = mask[i][j].color;
+                            MakeQuad(x, du, dv, mask[i][j].reverse);
+                            Color32 my_color = palette[mask[i][j].id];
                             newColors.Add(my_color);
                             newColors.Add(my_color);
                             newColors.Add(my_color);
@@ -285,7 +248,57 @@ public class VoxelRenderer : MonoBehaviour {
     }
 
     void DrawVoxelBufferChunk() {
+        offset_start = new int[3] {offset_start_x, offset_start_y, offset_start_z};
+        offset_end = new int[3] {offset_end_x, offset_end_y, offset_end_z};
+        for (int i = 0; i < 3; i++) {
+            if (offset_start[i] + offset_end[i] > dims[i]) {
+                return;
+            }
+        }
         GreedyMeshing();
         UpdateMesh();
     }
+
+    public void SetVanishVoxelOffset(int fraction, Vector3 direction) {
+        int new_offset;
+        if (direction.x > 0) {
+            if (fraction > start_x) {
+                new_offset = Mathf.Max(Mathf.Min(fraction-start_x, 16), 0);
+                if (offset_start_x != new_offset) {
+                    offset_start_x = new_offset;
+                    DrawVoxelBufferChunk();
+                }
+            }
+        } else if (direction.x < 0) {
+            if (128-fraction > start_x) {
+                new_offset = chunk_x_size - Mathf.Max(Mathf.Min(64-fraction-start_x, 16), 0);
+                if (offset_end_x != new_offset) {
+                    offset_end_x = new_offset;
+                    DrawVoxelBufferChunk();
+                }
+            }
+        }
+    }
+
+    public void SetAppearVoxelOffset(int fraction, Vector3 direction) {
+        int new_offset;
+        if (direction.x > 0) {
+            if (fraction > start_x) {
+                new_offset = chunk_x_size - Mathf.Max(Mathf.Min(fraction-start_x, 16), 0);
+                if (offset_end_x != new_offset) {
+                    offset_end_x = new_offset;
+                    DrawVoxelBufferChunk();
+                }
+            }
+        } else if (direction.x < 0) {
+            if (128-fraction > start_x) {
+                new_offset = Mathf.Max(Mathf.Min(64-fraction-start_x, 16), 0);
+                if (offset_start_x != new_offset) {
+                    offset_start_x = new_offset;
+                    DrawVoxelBufferChunk();
+                }
+            }
+        }
+    }
+
 }
